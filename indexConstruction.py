@@ -2,10 +2,13 @@ import json
 import os
 from bs4 import BeautifulSoup
 
+# Class for Inverted Index
 class InvertedIndex:
   def __init__(self):
+    # Dictionary to hold postings
     self.invertedIndex = {}
 
+  # Tokenize text
   def tokenize(self, text):
     tokens = []
     token = ""
@@ -20,6 +23,8 @@ class InvertedIndex:
         tokens.append(token)
     return tokens
 
+  # Add to dictionary in format 
+  # token: [{document URLs}, token frequency]
   def computePostings(self, tokens, documentID):
       for token in tokens:
           if token in self.invertedIndex:
@@ -28,21 +33,25 @@ class InvertedIndex:
           else:
             self.invertedIndex[token] = [{documentID}, 1]
     
+  # Open HTML json file
   def openHTML(self, path):
     with open(path, 'r') as HTMLjson:
       data = json.load(HTMLjson)
       
     return data
 
+  # Get HTML text
   def getText(self, dataContent):
     soup = BeautifulSoup(dataContent, 'html.parser')
     text = soup.get_text()
     
     return text
   
+  # Helper function to get index
   def getInvertedIndex(self):
     return self.invertedIndex
   
+  # Add the postings to the index given file
   def createPostings(self, dirPath, fileName):
       data = self.openHTML(dirPath + "/" + fileName)
       dataContent = data['content']
@@ -53,6 +62,7 @@ class InvertedIndex:
       
       self.computePostings(tokens, dataID)
       
+  # Create report file of index
   def writeDataFile(self):
     with open('reports/InvertedIndexReport.txt', 'w', encoding='utf-8') as InvertedIndexReport:
         for token in self.invertedIndex:
