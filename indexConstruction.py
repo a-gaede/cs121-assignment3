@@ -52,10 +52,10 @@ class InvertedIndex:
     return self.invertedIndex
   
   # Add the postings to the index given file
-  def createPostings(self, dirPath, fileName):
+  def createPostings(self, dirPath, fileName, count):
       data = self.openHTML(dirPath + "/" + fileName)
       dataContent = data['content']
-      dataID = data['url']
+      dataID = count
       
       text = self.getText(dataContent)
       tokens = self.tokenize(text)
@@ -76,7 +76,7 @@ if __name__ == "__main__":
   for dirPath, _, fileNames in os.walk(ROOT):
     for fileName in fileNames:
       count+=1
-      InvertedIndex.createPostings(dirPath, fileName)
+      InvertedIndex.createPostings(dirPath, fileName, count)
       print(f'Processing {count} of 32212')
   InvertedIndex.writeDataFile()
   
