@@ -85,7 +85,7 @@ if __name__ == "__main__":
   InvertedIndex = InvertedIndex()
   
   # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
-  ROOT = "developer/DEV" 
+  ROOT = "data/DEV" 
   count = 0
   for dirPath, _, fileNames in os.walk(ROOT):
     for fileName in fileNames:
