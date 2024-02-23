@@ -7,6 +7,8 @@ class InvertedIndex:
   def __init__(self):
     # Dictionary to hold postings
     self.invertedIndex = {}
+    # Holds number of indexed documents
+    self.indexedDocuments = 0
 
   # Tokenize text
   def tokenize(self, text):
@@ -45,6 +47,8 @@ class InvertedIndex:
     soup = BeautifulSoup(dataContent, 'html.parser')
     text = soup.get_text()
     
+    self.indexedDocuments += 1
+    
     return text
   
   # Helper function to get index
@@ -67,16 +71,27 @@ class InvertedIndex:
     with open('reports/InvertedIndexReport.txt', 'w', encoding='utf-8') as InvertedIndexReport:
         for token in self.invertedIndex:
           InvertedIndexReport.write(f"{token}\n\tFound in: {self.invertedIndex[token][0]}\n\tFrequency: {self.invertedIndex[token][1]}\n")
+          
+  # Create report file of unique tokens
+  def writeTokensFile(self):
+    with open('reports/TokenReport.txt', 'w') as TokenReport:
+      TokenReport.write(f'{len(self.invertedIndex)} unique words.')
+      
+  def writeNumberIndexedFile(self):
+    with open('reports/NumberIndexed.txt', 'w') as NumberReport:
+      NumberReport.write(f'{self.indexedDocuments} total indexed documents')
 
 if __name__ == "__main__":
   InvertedIndex = InvertedIndex()
   
-  ROOT = "developer/DEV" 
+  # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
+  ROOT = r"test" 
   count = 0
   for dirPath, _, fileNames in os.walk(ROOT):
     for fileName in fileNames:
       count+=1
       InvertedIndex.createPostings(dirPath, fileName, count)
-      print(f'Processing {count} of 32212')
+      print(f'Processing {count}')
   InvertedIndex.writeDataFile()
-  
+  InvertedIndex.writeTokensFile()
+  InvertedIndex.writeNumberIndexedFile()
