@@ -1,6 +1,7 @@
 import json
 import os
 from stemmer import PorterStemmer
+from docMapper import DocMapper
 from bs4 import BeautifulSoup
 
 
@@ -61,15 +62,15 @@ class InvertedIndex:
     return self.invertedIndex
   
   # Add the postings to the index given file
-  def createPostings(self, dirPath, fileName, count):
+  def createPostings(self, dirPath, fileName):
+      docID = mapper.add_mapping(dirPath + "/" + fileName)
       data = self.openHTML(dirPath + "/" + fileName)
       dataContent = data['content']
-      dataID = count
       
       text = self.getText(dataContent)
       tokens = self.tokenize(text)
       
-      self.computePostings(tokens, dataID)
+      self.computePostings(tokens, docID)
       
   # Create report file of index
   def writeDataFile(self):
@@ -88,14 +89,16 @@ class InvertedIndex:
 
 if __name__ == "__main__":
   InvertedIndex = InvertedIndex()
-  
+  mapping_file = "doc_mapping.json"
+  mapper = DocMapper(mapping_file)
+
   # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
-  ROOT = "/Users/Jaelyn/Downloads/DEV"
+  ROOT = ""
   count = 0
   for dirPath, _, fileNames in os.walk(ROOT):
     for fileName in fileNames:
       count+=1
-      InvertedIndex.createPostings(dirPath, fileName, count)
+      InvertedIndex.createPostings(dirPath, fileName)
       print(f'Processing {count}')
   InvertedIndex.writeDataFile()
   InvertedIndex.writeTokensFile()
