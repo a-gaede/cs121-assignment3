@@ -1,6 +1,8 @@
 import json
 import os
+from stemmer import PorterStemmer
 from bs4 import BeautifulSoup
+
 
 # Class for Inverted Index
 class InvertedIndex:
@@ -12,6 +14,7 @@ class InvertedIndex:
 
   # Tokenize text
   def tokenize(self, text):
+    stemmer = PorterStemmer()
     tokens = []
     token = ""
     for char in text.lower():
@@ -19,9 +22,11 @@ class InvertedIndex:
             token += char
         else:
             if token:
+                stemmer.stem(token)
                 tokens.append(token)
                 token = ""
     if token:
+        stemmer.stem(token)
         tokens.append(token)
     return tokens
 
@@ -85,7 +90,7 @@ if __name__ == "__main__":
   InvertedIndex = InvertedIndex()
   
   # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
-  ROOT = "data/DEV" 
+  ROOT = "/Users/Jaelyn/Downloads/DEV"
   count = 0
   for dirPath, _, fileNames in os.walk(ROOT):
     for fileName in fileNames:
