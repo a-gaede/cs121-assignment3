@@ -3,7 +3,7 @@ import os
 from stemmer import PorterStemmer
 from docMapper import DocMapper
 from bs4 import BeautifulSoup
-
+from retriever import Retriever
 
 # Class for Inverted Index
 class InvertedIndex:
@@ -23,11 +23,17 @@ class InvertedIndex:
             token += char
         else:
             if token:
-                stemmer.stem(token)
+                try:
+                    stemmer.stem(token)
+                except:
+                    print("couldn't stem", token)
                 tokens.append(token)
                 token = ""
     if token:
-        stemmer.stem(token)
+        try:
+            stemmer.stem(token)
+        except:
+            print("couldn't stem", token)
         tokens.append(token)
     return tokens
 
@@ -71,7 +77,7 @@ class InvertedIndex:
       tokens = self.tokenize(text)
       
       self.computePostings(tokens, docID)
-      
+
   # Create report file of index
   def writeDataFile(self):
     with open('reports/InvertedIndexReport.txt', 'w', encoding='utf-8') as InvertedIndexReport:
@@ -87,19 +93,25 @@ class InvertedIndex:
     with open('reports/NumberIndexed.txt', 'w') as NumberReport:
       NumberReport.write(f'{self.indexedDocuments} total indexed documents')
 
+  def runInvertedIndex(self, root):
+    count = 0
+    for dirPath, _, fileNames in os.walk(root):
+      for fileName in fileNames:
+        count += 1
+        self.createPostings(dirPath, fileName)
+        print(f'Processing {count}')
+    self.writeDataFile()
+    self.writeTokensFile()
+    self.writeNumberIndexedFile()
+
 if __name__ == "__main__":
   InvertedIndex = InvertedIndex()
   mapping_file = "doc_mapping.json"
   mapper = DocMapper(mapping_file)
 
   # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
-  ROOT = ""
-  count = 0
-  for dirPath, _, fileNames in os.walk(ROOT):
-    for fileName in fileNames:
-      count+=1
-      InvertedIndex.createPostings(dirPath, fileName)
-      print(f'Processing {count}')
-  InvertedIndex.writeDataFile()
-  InvertedIndex.writeTokensFile()
-  InvertedIndex.writeNumberIndexedFile()
+  ROOT = "./../../DEV"
+  #InvertedIndex.runInvertedIndex(ROOT)
+  retriever = Retriever(InvertedIndex.getInvertedIndex())
+  retriever.retrieve()
+  retriever.findTokenCounts()
