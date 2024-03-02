@@ -6,6 +6,7 @@ class Retriever:
 
     # pass in inverted-index for comparison
     def __init__(self, index):
+        #print("index is:",index)
         with open(index, 'r') as indexFile:
             self.invertedIndex = json.load(indexFile)
 
@@ -35,7 +36,7 @@ class Retriever:
         queryTag = True
         while queryTag:
             query = self.getQueryTokens()
-            if query[0] == 'quit':
+            if query[0] == 'quit' or query[0] == 'q' or query[0] == 'exit':
                 break
             print(query)
             for url in self.findTokenCounts(query):
@@ -53,6 +54,6 @@ class Retriever:
             found = reduce(set.intersection, map(set, found))
 
         if len(found) >= 5:
-            return found[:5]
+            return list(found)[:5] # Cast it as a list to avoid issues with sets
         else:
             return found

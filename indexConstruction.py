@@ -4,6 +4,7 @@ from stemmer import PorterStemmer
 from docMapper import DocMapper
 from bs4 import BeautifulSoup
 from retriever import Retriever
+from tqdm import tqdm
 
 # Class for Inverted Index
 
@@ -28,15 +29,10 @@ class InvertedIndex:
                     try:
                         stemmer.stem(token)
                     except:
-                        print("couldn't stem", token)
+                        #print("couldn't stem", token)
+                        pass
                     tokens.append(token)
-                    token = ""
-        if token:
-            try:
-                stemmer.stem(token)
-            except:
-                print("couldn't stem", token)
-            tokens.append(token)
+                    token = ""  
         return tokens
 
     # Add to dictionary in format
@@ -68,7 +64,10 @@ class InvertedIndex:
     # Helper function to get index
     def getInvertedIndex(self):
         return self.invertedIndex
-
+    
+    def getInvertedIndexFile(self):
+        return './reports/invertedIndex.json'
+    
     # Add the postings to the index given file
     def createPostings(self, dirPath, fileName):
         docID = mapper.add_mapping(dirPath + "/" + fileName)
@@ -108,10 +107,12 @@ class InvertedIndex:
     def runInvertedIndex(self, root):
         count = 0
         for dirPath, _, fileNames in os.walk(root):
-            for fileName in fileNames:
-                count += 1
-                self.createPostings(dirPath, fileName)
-                print(f'Processing {count}')
+          if count >= 5: # Temporary limit to the first 5 directories
+            break
+          print("Processing:", dirPath)
+          for i in tqdm(range(len(fileNames))):
+            self.createPostings(dirPath, fileNames[i])
+          count += 1
         self.writeDataFile()
         self.writeTokensFile()
         self.writeNumberIndexedFile()
@@ -123,9 +124,13 @@ if __name__ == "__main__":
     mapping_file = "doc_mapping.json"
     mapper = DocMapper(mapping_file)
 
-    # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
-    ROOT = "./../../DEV"
-    # InvertedIndex.runInvertedIndex(ROOT)
-    retriever = Retriever(InvertedIndex.getInvertedIndex())
+    # if there's already a doc_mapping.json, don't map it again
+    if not os.path.isfile('doc_mapping.json'):
+      
+      # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
+      ROOT = "./data/DEV"
+      InvertedIndex.runInvertedIndex(ROOT)
+    
+    retriever = Retriever(InvertedIndex.getInvertedIndexFile())
     retriever.retrieve()
-    retriever.findTokenCounts()
+
