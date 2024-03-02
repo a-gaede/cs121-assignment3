@@ -2,3 +2,5 @@
 *.pdf
 DEV/
 *.pyc
+*.json
+*.txt
