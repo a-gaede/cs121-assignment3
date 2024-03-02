@@ -47,11 +47,20 @@ class Retriever:
         found = []
 
         if len(queryTokens) == 1:
-            found = self.invertedIndex[queryTokens[0]][0]
+            try:
+                found = self.invertedIndex[queryTokens[0]][0]
+            except:
+                print('"'+queryTokens[0]+'"', 'not found.')
         else:
             for query in queryTokens:
-                found.append(self.invertedIndex[query][0])
-            found = reduce(set.intersection, map(set, found))
+                try:
+                    found.append(self.invertedIndex[query][0])
+                except:
+                    print('"'+query+'"', 'not found.')
+            
+            # Make sure that at least one term searched for is found
+            if len(found) >= 1:
+                found = reduce(set.intersection, map(set, found))
 
         if len(found) >= 5:
             return list(found)[:5] # Cast it as a list to avoid issues with sets
