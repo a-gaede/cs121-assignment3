@@ -1,9 +1,6 @@
 import json
 import os
-from stemmer import PorterStemmer
-from docMapper import DocMapper
 from bs4 import BeautifulSoup
-from retriever import Retriever
 
 # Class for Inverted Index
 
@@ -14,10 +11,11 @@ class InvertedIndex:
         self.invertedIndex = {}
         # Holds number of indexed documents
         self.indexedDocuments = 0
+        # Holds mapping for docIDs
+        self.docMapping = {}
 
     # Tokenize text
     def tokenize(self, text):
-        stemmer = PorterStemmer()
         tokens = []
         token = ""
         for char in text.lower():
@@ -25,17 +23,9 @@ class InvertedIndex:
                 token += char
             else:
                 if token:
-                    try:
-                        stemmer.stem(token)
-                    except:
-                        print("couldn't stem", token)
                     tokens.append(token)
                     token = ""
         if token:
-            try:
-                stemmer.stem(token)
-            except:
-                print("couldn't stem", token)
             tokens.append(token)
         return tokens
 
@@ -70,17 +60,21 @@ class InvertedIndex:
         return self.invertedIndex
 
     # Add the postings to the index given file
-    def createPostings(self, dirPath, fileName):
-        docID = mapper.add_mapping(dirPath + "/" + fileName)
+    def createPostings(self, dirPath, fileName, count):
         data = self.openHTML(dirPath + "/" + fileName)
         dataContent = data['content']
+        URL = data['url']
+        dataID = count
+
+        self.docMapping[dataID] = URL
 
         text = self.getText(dataContent)
         tokens = self.tokenize(text)
 
-        self.computePostings(tokens, docID)
+        self.computePostings(tokens, dataID)
 
     # Create report file of index
+
     def writeDataFile(self):
         with open('reports/InvertedIndexReport.txt', 'w', encoding='utf-8') as InvertedIndexReport:
             for token in self.invertedIndex:
@@ -92,12 +86,13 @@ class InvertedIndex:
         with open('reports/TokenReport.txt', 'w') as TokenReport:
             TokenReport.write(f'{len(self.invertedIndex)} unique words.')
 
+    # Create report file of number of indexed documents
     def writeNumberIndexedFile(self):
         with open('reports/NumberIndexed.txt', 'w') as NumberReport:
             NumberReport.write(
                 f'{self.indexedDocuments} total indexed documents')
 
-        # Create json of inverted index
+    # Create json of inverted index
     def writeInvertedIndexToJson(self):
         jsonStructure = {token: [list(docUrls), frequency]
                          for token, (docUrls, frequency) in self.invertedIndex.items()}
@@ -105,27 +100,24 @@ class InvertedIndex:
         with open('reports/invertedIndex.json', 'w') as invertedIndexJson:
             json.dump(jsonStructure, invertedIndexJson)
 
-    def runInvertedIndex(self, root):
-        count = 0
-        for dirPath, _, fileNames in os.walk(root):
-            for fileName in fileNames:
-                count += 1
-                self.createPostings(dirPath, fileName)
-                print(f'Processing {count}')
-        self.writeDataFile()
-        self.writeTokensFile()
-        self.writeNumberIndexedFile()
-        self.writeInvertedIndexToJson()
+    def writeDocMapping(self):
+        with open('reports/docMapping.json', 'w') as docMapping:
+            json.dump(self.docMapping, docMapping)
 
 
 if __name__ == "__main__":
     InvertedIndex = InvertedIndex()
-    mapping_file = "doc_mapping.json"
-    mapper = DocMapper(mapping_file)
 
     # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
-    ROOT = "./../../DEV"
-    # InvertedIndex.runInvertedIndex(ROOT)
-    retriever = Retriever(InvertedIndex.getInvertedIndex())
-    retriever.retrieve()
-    retriever.findTokenCounts()
+    ROOT = r"test"
+    count = 0
+    for dirPath, _, fileNames in os.walk(ROOT):
+        for fileName in fileNames:
+            count += 1
+            InvertedIndex.createPostings(dirPath, fileName, count)
+            print(f'Processing {count}')
+    InvertedIndex.writeDataFile()
+    InvertedIndex.writeTokensFile()
+    InvertedIndex.writeNumberIndexedFile()
+    InvertedIndex.writeInvertedIndexToJson()
+    InvertedIndex.writeDocMapping()
