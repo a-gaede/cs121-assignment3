@@ -13,7 +13,7 @@ class Retriever:
 
     # individual query token acquisition
     def getQueryTokens(self):
-        query = input("Enter Query:")
+        query = input("Enter Query: ")
         queryTokens = self.tokenize(query)
         return queryTokens
 
@@ -44,8 +44,9 @@ class Retriever:
             if len(results) == 0:
                 print("No results")
                 continue
+            print('Results:')
             for docID in results:
-                print(self.docMapping[str(docID)])
+                print(f'\t{self.docMapping[str(docID)]}')
 
     # Does AND operation
     def findTokenCounts(self, queryTokens):
