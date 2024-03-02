@@ -1,17 +1,21 @@
+import json
+from functools import reduce
+
 
 class Retriever:
 
-    #pass in inverted-index for comparison
+    # pass in inverted-index for comparison
     def __init__(self, index):
-        self.invertedIndex = index
+        with open(index, 'r') as indexFile:
+            self.invertedIndex = json.load(indexFile)
 
-    #individual query token acquisition    
+    # individual query token acquisition
     def getQueryTokens(self):
         query = input("Enter Query:")
         queryTokens = self.tokenize(query)
         return queryTokens
 
-    #tokenize method from indexConstruction
+    # tokenize method from indexConstruction
     def tokenize(self, text):
         tokens = []
         token = ""
@@ -26,7 +30,7 @@ class Retriever:
             tokens.append(token)
         return tokens
 
-    #loop repeatedly taking queries until 'quit'
+    # loop repeatedly taking queries until 'quit'
     def retrieve(self):
         queryTag = True
         while queryTag:
@@ -34,8 +38,21 @@ class Retriever:
             if query[0] == 'quit':
                 break
             print(query)
+            for url in self.findTokenCounts(query):
+                print(url)
 
-    #currently unfinished--indexes based of AND'ing the terms in query with corresponding terms in index
-    def findTokenCounts(self):
-        #prints empty dictionary
-        print(self.invertedIndex)
+    # Does AND operation
+    def findTokenCounts(self, queryTokens):
+        found = []
+
+        if len(queryTokens) == 1:
+            found = self.invertedIndex[queryTokens[0]][0]
+        else:
+            for query in queryTokens:
+                found.append(self.invertedIndex[query][0])
+            found = reduce(set.intersection, map(set, found))
+
+        if len(found) >= 5:
+            return found[:5]
+        else:
+            return found
