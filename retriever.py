@@ -5,9 +5,11 @@ from functools import reduce
 class Retriever:
 
     # pass in inverted-index for comparison
-    def __init__(self, index):
+    def __init__(self, index, docMap):
         with open(index, 'r') as indexFile:
             self.invertedIndex = json.load(indexFile)
+        with open(docMap, 'r') as docMapFile:
+            self.docMapping = json.load(docMapFile)
 
     # individual query token acquisition
     def getQueryTokens(self):
@@ -38,19 +40,26 @@ class Retriever:
             if query[0] == 'quit':
                 break
             print(query)
-            for url in self.findTokenCounts(query):
-                print(url)
+            results = self.findTokenCounts(query)
+            if len(results) == 0:
+                print("No results")
+                continue
+            for docID in results:
+                print(self.docMapping[str(docID)])
 
     # Does AND operation
     def findTokenCounts(self, queryTokens):
         found = []
 
         if len(queryTokens) == 1:
-            found = self.invertedIndex[queryTokens[0]][0]
+            if queryTokens[0] in self.invertedIndex:
+                found = self.invertedIndex[queryTokens[0]][0]
         else:
             for query in queryTokens:
-                found.append(self.invertedIndex[query][0])
-            found = reduce(set.intersection, map(set, found))
+                if query in self.invertedIndex:
+                    found.append(self.invertedIndex[query][0])
+            if len(found) != 0:
+                found = list(reduce(set.intersection, map(set, found)))
 
         if len(found) >= 5:
             return found[:5]
