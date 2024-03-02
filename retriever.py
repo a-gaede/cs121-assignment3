@@ -50,13 +50,13 @@ class Retriever:
             try:
                 found = self.invertedIndex[queryTokens[0]][0]
             except:
-                print('"'+queryTokens[0]+'"', 'not found.')
+                print('"' + queryTokens[0] + '" not found.')
         else:
             for query in queryTokens:
                 try:
                     found.append(self.invertedIndex[query][0])
                 except:
-                    print('"'+query+'"', 'not found.')
+                    print('"' + query + '" not found.')
             
             # Make sure that at least one term searched for is found
             if len(found) >= 1:
