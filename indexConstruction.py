@@ -1,5 +1,6 @@
 import json
 import os
+import math
 from bs4 import BeautifulSoup
 
 # Class for Inverted Index
@@ -13,6 +14,12 @@ class InvertedIndex:
         self.indexedDocuments = 0
         # Holds mapping for docIDs
         self.docMapping = {}
+        # Batch size
+        self.batchSize = 500
+        # File counter
+        self.fileCounter = 0
+        # Batch counter
+        self.batchCounter = 1
 
     # Tokenize text
     def tokenize(self, text):
@@ -29,15 +36,16 @@ class InvertedIndex:
             tokens.append(token)
         return tokens
 
-    # Add to dictionary in format
-    # token: [{document URLs}, token frequency]
-    def computePostings(self, tokens, documentID):
+    # Calculate term frequency within document
+    def computeFrequencies(self, tokens):
+        documentTokenFrequency = {}
         for token in tokens:
-            if token in self.invertedIndex:
-                self.invertedIndex[token][0].add(documentID)
-                self.invertedIndex[token][1] += 1
+            if token not in documentTokenFrequency:
+                documentTokenFrequency[token] = 1
             else:
-                self.invertedIndex[token] = [{documentID}, 1]
+                documentTokenFrequency[token] += 1
+
+        return documentTokenFrequency
 
     # Open HTML json file
     def openHTML(self, path):
@@ -55,11 +63,41 @@ class InvertedIndex:
 
         return text
 
-    # Helper function to get index
-    def getInvertedIndex(self):
-        return self.invertedIndex
+    # Get TF Score (number of times token appears in document / total number of tokens in document)
+    def calculateTFScore(self, token, tokens):
+        return tokens[token] / len(tokens)
+
+    # Get IDF score (log of total number of documents / number of documents containing token)
+    def calculateIDFScore(self, token):
+        return math.log(self.indexedDocuments / len(self.invertedIndex[token]), 10)
+
+    # TF multiplied by IDF
+    def calculateTFIDFScore(self, tf, idf):
+        return round(tf * idf, 5)
+
+    # Compute intial posting with TF score
+    def computeTFScorePostings(self, documentTokenFrequency, documentID):
+        for token in documentTokenFrequency:
+            if token in self.invertedIndex:
+                self.invertedIndex[token].append(
+                    ([documentID, self.calculateTFScore(token, documentTokenFrequency)]))
+            else:
+                self.invertedIndex[token] = [
+                    [documentID, self.calculateTFScore(token, documentTokenFrequency)]]
+
+    # Compute next posting with TFIDF score
+    def computeTFIDFScorePostings(self):
+        for token in self.invertedIndex:
+            IDFScore = self.calculateIDFScore(token)
+            for posting in self.invertedIndex[token]:
+                posting[1] = self.calculateTFIDFScore(posting[1], IDFScore)
+
+    # Compute full posting
+    def computePostings(self, documentTermFrequency, documentID):
+        self.computeTFScorePostings(documentTermFrequency, documentID)
 
     # Add the postings to the index given file
+
     def createPostings(self, dirPath, fileName, count):
         data = self.openHTML(dirPath + "/" + fileName)
         dataContent = data['content']
@@ -70,34 +108,29 @@ class InvertedIndex:
 
         text = self.getText(dataContent)
         tokens = self.tokenize(text)
+        tokensFrequencies = self.computeFrequencies(tokens)
 
-        self.computePostings(tokens, dataID)
+        self.computePostings(tokensFrequencies, dataID)
 
-    # Create report file of index
+    def createBatchPostings(self, dirPath, fileNames, count):
+        self.fileCounter += 1
 
-    def writeDataFile(self):
-        with open('reports/InvertedIndexReport.txt', 'w', encoding='utf-8') as InvertedIndexReport:
-            for token in self.invertedIndex:
-                InvertedIndexReport.write(
-                    f"{token}\n\tFound in: {self.invertedIndex[token][0]}\n\tFrequency: {self.invertedIndex[token][1]}\n")
-
-    # Create report file of unique tokens
-    def writeTokensFile(self):
-        with open('reports/TokenReport.txt', 'w') as TokenReport:
-            TokenReport.write(f'{len(self.invertedIndex)} unique words.')
-
-    # Create report file of number of indexed documents
-    def writeNumberIndexedFile(self):
-        with open('reports/NumberIndexed.txt', 'w') as NumberReport:
-            NumberReport.write(
-                f'{self.indexedDocuments} total indexed documents')
+        if self.fileCounter >= (self.batchSize):
+            self.createPostings(dirPath, fileNames, count)
+            self.writeIIBatchesToJson(self.batchCounter)
+            self.invertedIndex = {}
+            self.fileCounter = 0
+            self.batchCounter += 1
+        else:
+            self.createPostings(dirPath, fileNames, count)
 
     # Create json of inverted index
-    def writeInvertedIndexToJson(self):
-        jsonStructure = {token: [list(docUrls), frequency]
-                         for token, (docUrls, frequency) in self.invertedIndex.items()}
+    def writeIIBatchesToJson(self, batchNumber):
+        self.computeTFIDFScorePostings()
+        jsonStructure = {token: [(docID, freq) for docID, freq in postings]
+                         for token, postings in self.invertedIndex.items()}
 
-        with open('reports/invertedIndex.json', 'w') as invertedIndexJson:
+        with open(f'reports/InvertedIndexReports/IIBatch{batchNumber}.json', 'w') as invertedIndexJson:
             json.dump(jsonStructure, invertedIndexJson)
 
     def writeDocMapping(self):
@@ -106,18 +139,16 @@ class InvertedIndex:
 
 
 if __name__ == "__main__":
-    InvertedIndex = InvertedIndex()
-
     # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
-    ROOT = r"test"
+    ROOT = r"developer/DEV"
     count = 0
+    InvertedIndex = InvertedIndex()
     for dirPath, _, fileNames in os.walk(ROOT):
         for fileName in fileNames:
             count += 1
-            InvertedIndex.createPostings(dirPath, fileName, count)
+            InvertedIndex.createBatchPostings(dirPath, fileName, count)
             print(f'Processing {count}')
-    InvertedIndex.writeDataFile()
-    InvertedIndex.writeTokensFile()
-    InvertedIndex.writeNumberIndexedFile()
-    InvertedIndex.writeInvertedIndexToJson()
+    if InvertedIndex.invertedIndex:
+        InvertedIndex.writeIIBatchesToJson(
+            InvertedIndex.batchCounter)
     InvertedIndex.writeDocMapping()
