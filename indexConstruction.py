@@ -1,25 +1,41 @@
 import json
 import os
-import math
 from bs4 import BeautifulSoup
-
-# Class for Inverted Index
+from nltk.stem import PorterStemmer
 
 
 class InvertedIndex:
     def __init__(self):
-        # Dictionary to hold postings
         self.invertedIndex = {}
-        # Holds number of indexed documents
-        self.indexedDocuments = 0
-        # Holds mapping for docIDs
         self.docMapping = {}
-        # Batch size
-        self.batchSize = 500
-        # File counter
-        self.fileCounter = 0
-        # Batch counter
-        self.batchCounter = 1
+
+    """OPEN FILE AND GET TEXT"""
+
+    # Open HTML json file
+    def openHTML(self, path):
+        with open(path, 'r') as HTMLjson:
+            data = json.load(HTMLjson)
+
+        return data
+
+    # Get HTML text
+    def getText(self, dataContent):
+        soup = BeautifulSoup(dataContent, 'html.parser')
+        text = {
+            'p': ' '.join([p.get_text() for p in soup.find_all('p')]),
+            'bold': ' '.join([bold.get_text() for bold in soup.find_all(['b', 'strong'])]),
+            'h1': ' '.join([h1.get_text() for h1 in soup.find_all('h1')]),
+            'h2': ' '.join([h2.get_text() for h2 in soup.find_all('h2')]),
+            'h3': ' '.join([h3.get_text() for h3 in soup.find_all('h3')]),
+            'h4': ' '.join([h4.get_text() for h4 in soup.find_all('h4')]),
+            'h5': ' '.join([h5.get_text() for h5 in soup.find_all('h5')]),
+            'h6': ' '.join([h6.get_text() for h6 in soup.find_all('h6')]),
+            'title': ' '.join([title.get_text() for title in soup.find_all('title')])
+        }
+
+        return text
+
+    """TOKENIZE AND STEM"""
 
     # Tokenize text
     def tokenize(self, text):
@@ -36,6 +52,29 @@ class InvertedIndex:
             tokens.append(token)
         return tokens
 
+    # Stem tokens
+    def stem(self, tokens):
+        stemmer = PorterStemmer()
+        tokens = [stemmer.stem(token) for token in tokens]
+
+        return tokens
+
+    """PERFORM TEXT PROCESSING TASKS ON HTML CONTENT"""
+
+    # Process
+    def textProcessing(self, dataContent):
+        text = self.getText(dataContent)
+        tokens = {}
+
+        for field in text:
+            fieldTokens = self.tokenize(text[field])
+            stemmedFieldTokens = self.stem(fieldTokens)
+            tokens[field] = stemmedFieldTokens
+
+        return tokens
+
+    """CREATE POSTINGS AND CREATE INDEX"""
+
     # Calculate term frequency within document
     def computeFrequencies(self, tokens):
         documentTokenFrequency = {}
@@ -47,58 +86,21 @@ class InvertedIndex:
 
         return documentTokenFrequency
 
-    # Open HTML json file
-    def openHTML(self, path):
-        with open(path, 'r') as HTMLjson:
-            data = json.load(HTMLjson)
-
-        return data
-
-    # Get HTML text
-    def getText(self, dataContent):
-        soup = BeautifulSoup(dataContent, 'html.parser')
-        text = soup.get_text()
-
-        self.indexedDocuments += 1
-
-        return text
-
-    # Get TF Score (number of times token appears in document / total number of tokens in document)
-    def calculateTFScore(self, token, tokens):
-        return tokens[token] / len(tokens)
-
-    # Get IDF score (log of total number of documents / number of documents containing token)
-    def calculateIDFScore(self, token):
-        return math.log(self.indexedDocuments / len(self.invertedIndex[token]), 10)
-
-    # TF multiplied by IDF
-    def calculateTFIDFScore(self, tf, idf):
-        return round(tf * idf, 5)
-
-    # Compute intial posting with TF score
-    def computeTFScorePostings(self, documentTokenFrequency, documentID):
-        for token in documentTokenFrequency:
+    # Add to dictionary in format
+    # token: [[posting1], [posting2], [posting3], etc...]
+    # where posting is in format
+    # [docID, field, frequency]
+    def computePostings(self, documentID, field, frequencies):
+        for token in frequencies:
             if token in self.invertedIndex:
                 self.invertedIndex[token].append(
-                    ([documentID, self.calculateTFScore(token, documentTokenFrequency)]))
+                    [documentID, field, frequencies[token]])
             else:
                 self.invertedIndex[token] = [
-                    [documentID, self.calculateTFScore(token, documentTokenFrequency)]]
-
-    # Compute next posting with TFIDF score
-    def computeTFIDFScorePostings(self):
-        for token in self.invertedIndex:
-            IDFScore = self.calculateIDFScore(token)
-            for posting in self.invertedIndex[token]:
-                posting[1] = self.calculateTFIDFScore(posting[1], IDFScore)
-
-    # Compute full posting
-    def computePostings(self, documentTermFrequency, documentID):
-        self.computeTFScorePostings(documentTermFrequency, documentID)
+                    [documentID, field, frequencies[token]]]
 
     # Add the postings to the index given file
-
-    def createPostings(self, dirPath, fileName, count):
+    def index(self, dirPath, fileName, count):
         data = self.openHTML(dirPath + "/" + fileName)
         dataContent = data['content']
         URL = data['url']
@@ -106,49 +108,27 @@ class InvertedIndex:
 
         self.docMapping[dataID] = URL
 
-        text = self.getText(dataContent)
-        tokens = self.tokenize(text)
-        tokensFrequencies = self.computeFrequencies(tokens)
+        tokens = self.textProcessing(dataContent)
+        frequencies = {}
 
-        self.computePostings(tokensFrequencies, dataID)
+        for field in tokens:
+            frequencies[field] = self.computeFrequencies(tokens[field])
 
-    def createBatchPostings(self, dirPath, fileNames, count):
-        self.fileCounter += 1
-
-        if self.fileCounter >= (self.batchSize):
-            self.createPostings(dirPath, fileNames, count)
-            self.writeIIBatchesToJson(self.batchCounter)
-            self.invertedIndex = {}
-            self.fileCounter = 0
-            self.batchCounter += 1
-        else:
-            self.createPostings(dirPath, fileNames, count)
-
-    # Create json of inverted index
-    def writeIIBatchesToJson(self, batchNumber):
-        self.computeTFIDFScorePostings()
-        jsonStructure = {token: [(docID, freq) for docID, freq in postings]
-                         for token, postings in self.invertedIndex.items()}
-
-        with open(f'reports/InvertedIndexReports/IIBatch{batchNumber}.json', 'w') as invertedIndexJson:
-            json.dump(jsonStructure, invertedIndexJson)
-
-    def writeDocMapping(self):
-        with open('reports/docMapping.json', 'w') as docMapping:
-            json.dump(self.docMapping, docMapping)
+        for field in frequencies:
+            self.computePostings(
+                dataID, field, frequencies[field])
 
 
 if __name__ == "__main__":
     # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
-    ROOT = r"developer/DEV"
+    ROOT = r"test"
     count = 0
     InvertedIndex = InvertedIndex()
     for dirPath, _, fileNames in os.walk(ROOT):
         for fileName in fileNames:
             count += 1
-            InvertedIndex.createBatchPostings(dirPath, fileName, count)
-            print(f'Processing {count}')
-    if InvertedIndex.invertedIndex:
-        InvertedIndex.writeIIBatchesToJson(
-            InvertedIndex.batchCounter)
-    InvertedIndex.writeDocMapping()
+            print(f'Processing Doc {count}')
+            InvertedIndex.index(dirPath, fileName, count)
+            break
+
+    print(InvertedIndex.invertedIndex)
