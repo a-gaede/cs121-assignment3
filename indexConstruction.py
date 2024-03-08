@@ -6,8 +6,18 @@ from nltk.stem import PorterStemmer
 
 class InvertedIndex:
     def __init__(self):
+        # Dictionary to hold postings
         self.invertedIndex = {}
+        # Holds number of indexed documents
+        self.indexedDocuments = 0
+        # Holds mapping for docIDs
         self.docMapping = {}
+        # Batch size
+        self.batchSize = 2
+        # File counter
+        self.fileCounter = 0
+        # Batch counter
+        self.batchCounter = 1
 
     """OPEN FILE AND GET TEXT"""
 
@@ -32,6 +42,8 @@ class InvertedIndex:
             'h6': ' '.join([h6.get_text() for h6 in soup.find_all('h6')]),
             'title': ' '.join([title.get_text() for title in soup.find_all('title')])
         }
+
+        self.indexedDocuments += 1
 
         return text
 
@@ -118,6 +130,32 @@ class InvertedIndex:
             self.computePostings(
                 dataID, field, frequencies[field])
 
+    def createBatchIndexes(self, dirPath, fileNames, count):
+        self.fileCounter += 1
+
+        if self.fileCounter >= (self.batchSize):
+            self.index(dirPath, fileNames, count)
+            self.writeIIBatchesToJson(self.batchCounter)
+            self.invertedIndex = {}
+            self.fileCounter = 0
+            self.batchCounter += 1
+        else:
+            self.index(dirPath, fileNames, count)
+
+    """CREATE OUTPUT FILES"""
+
+    # Create json of inverted index
+    def writeIIBatchesToJson(self, batchNumber):
+        jsonStructure = {token: [(docID, field, freq) for docID, field, freq in postings]
+                         for token, postings in self.invertedIndex.items()}
+
+        with open(f'reports/InvertedIndexReports/IIBatch{batchNumber}.json', 'w') as invertedIndexJson:
+            json.dump(jsonStructure, invertedIndexJson)
+
+    def writeDocMapping(self):
+        with open('reports/docMapping.json', 'w') as docMapping:
+            json.dump(self.docMapping, docMapping)
+
 
 if __name__ == "__main__":
     # ADD YOUR DIRECTORY ROOT HERE FOR YOUR WEBPAGES
@@ -128,7 +166,8 @@ if __name__ == "__main__":
         for fileName in fileNames:
             count += 1
             print(f'Processing Doc {count}')
-            InvertedIndex.index(dirPath, fileName, count)
-            break
-
-    print(InvertedIndex.invertedIndex)
+            InvertedIndex.createBatchIndexes(dirPath, fileName, count)
+    if InvertedIndex.invertedIndex:
+        InvertedIndex.writeIIBatchesToJson(
+            InvertedIndex.batchCounter)
+    InvertedIndex.writeDocMapping()
