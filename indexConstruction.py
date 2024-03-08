@@ -65,6 +65,53 @@ class InvertedIndex:
 
         return text
 
+    def getImportantText(self, dataContent):
+        soup = BeautifulSoup(dataContent, 'html.parser')
+
+        # Define tag priorities (weights)
+        tag_priorities = {
+            'title': 3,
+            'h1': 2,
+            'b': 1,
+            'strong': 1,
+            # anchor tag: 2
+            # metadata keywords: 3
+        }
+
+        # Extracting meta keywords
+        meta_keywords = soup.find('meta', attrs={'name': 'keywords'})['content']
+
+        # Initialize important_text
+        important_text = {}
+
+        # Add metadata keywords to important_text
+        for keyword in meta_keywords.split(','):
+            important_text[keyword.strip()] = 3
+
+        # Add anchor tag keywords to important_text
+        for anchor_tag in soup.find_all('a'):
+            anchor_text = anchor_tag.get_text().strip()
+            for word in anchor_text.split():
+                if word not in important_text:
+                    important_text[word] = 2
+
+        # Extract remaining keywords along with associated tags
+        for tag in soup.find_all(['title', 'h1', 'b', 'strong']):
+            # Get tag name and associated text
+            tag_name = tag.name
+            tag_text = tag.get_text().strip()
+
+            # Assign weight based on tag priority
+            weight = tag_priorities.get(tag_name, 0)
+
+            # Update important text with weighted tag text
+            if weight > 0:
+                for word in tag_text.split():
+                    if word not in important_text:
+                        important_text[word] = weight
+
+        return important_text
+
     # Helper function to get index
     def getInvertedIndex(self):
         return self.invertedIndex
