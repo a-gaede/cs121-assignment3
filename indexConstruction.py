@@ -7,7 +7,7 @@ from collections import defaultdict
 from urllib.parse import urlparse
 
 """
-FIELD KEY
+FIELD WEIGHTS
 
 1: p
 2: b and strong
@@ -31,7 +31,7 @@ class InvertedIndex:
         # Holds mapping for docIDs
         self.docMapping = {}
         # Batch size
-        self.batchSize = 2
+        self.batchSize = 1000
         # File counter
         self.fileCounter = 1
         # Batch counter
@@ -234,6 +234,6 @@ class InvertedIndex:
 
 
 if __name__ == "__main__":
-    ROOT = r"test"
+    ROOT = r"DEV"
     InvertedIndex = InvertedIndex()
     InvertedIndex.start(ROOT)
