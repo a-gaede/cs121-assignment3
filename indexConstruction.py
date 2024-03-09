@@ -31,7 +31,7 @@ class InvertedIndex:
         # Holds mapping for docIDs
         self.docMapping = {}
         # Batch size
-        self.batchSize = 1000
+        self.batchSize = 2
         # File counter
         self.fileCounter = 1
         # Batch counter
@@ -231,9 +231,10 @@ class InvertedIndex:
         if self.invertedIndex:
             self.writeIIBatchesToJson(self.batchCounter)
         self.writeDocMapping()
+        self.writeTotalDocsIndexed()
 
 
 if __name__ == "__main__":
-    ROOT = r"DEV"
+    ROOT = r"test"
     InvertedIndex = InvertedIndex()
     InvertedIndex.start(ROOT)
