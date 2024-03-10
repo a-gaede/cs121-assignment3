@@ -10,7 +10,7 @@ TEST QUERIES USED
 5. uniques
 6. running
 
-// Testing two word queries, had initial problems with intersecting but was resolved
+// Testing two word queries, had initial problems with intersecting but was resolved, used intersecting by increasing document frequency learned from lecture
 7. computer science
 8. computer sciences
 9. running man
