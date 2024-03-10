@@ -1,4 +1,4 @@
-import json
+import ujson
 import math
 from nltk.stem import PorterStemmer
 from collections import defaultdict
@@ -13,7 +13,7 @@ class Retriever:
         with open(totalNum, "r") as total:
             self.total = int(total.read())
         with open(docMapping, "r") as docMapFile:
-            self.docMap = json.load(docMapFile)
+            self.docMap = ujson.load(docMapFile)
 
     # individual query token acquisition
     def getQueryTokens(self, interfaceQuery=None):
@@ -27,7 +27,7 @@ class Retriever:
         mergedPostings = {}
         for token in tokens:
             with open(f"{self.invertedIndexPath}/Index-{token[0]}.json") as II:
-                data = json.load(II)
+                data = ujson.load(II)
                 if token in data:
                     mergedPostings[token] = data[token]
 
@@ -88,7 +88,9 @@ class Retriever:
         queryTag = True
         while queryTag:
             tokens = self.getQueryTokens()
-            if tokens[0] == "quit":
+            if tokens == []:
+                continue
+            elif tokens[0] == "quit":
                 break
             merged = self.computeMergedPostings(tokens)
             ANDPostings = self.computeAND(merged)
@@ -103,9 +105,7 @@ class Retriever:
             )
             if len(scores) > 5:
                 sortedScores = dict(
-                    sorted(scores.items(),
-                           key=lambda item: item[0], reverse=True)[:5]
+                    sorted(scores.items(), key=lambda item: item[0], reverse=True)[:5]
                 )
             for i, score in enumerate(sortedScores):
-                print(
-                    f"{i+1}\t{round(score)}\t{self.docMap[str(sortedScores[score])]}")
+                print(f"{i+1}\t{round(score)}\t{self.docMap[str(sortedScores[score])]}")

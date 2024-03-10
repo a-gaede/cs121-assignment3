@@ -1,64 +1,55 @@
-import json
+import ijson
 import os
+import ujson
 
-class Merger:
-    def __init__(self):
-        self.merged_index = {}
-        self.merged_dir = './reports/MergedIndexReports'
 
-    def merge(self):
-        # If no folder exists for a merged index, create one.
-        if not os.path.exists(self.merged_dir):
-            os.makedirs(self.merged_dir)
-        
-        # Directory with unsorted Inverted index
-        dirpath = './reports/InvertedIndexReports' 
-        
-        files = os.listdir(dirpath)
-  
-        for i in range(len(files)):
-            file = json.load(open(dirpath + '/'+ files[i],'r',encoding='utf-8'))
-            for value in file.keys():
-                letter = value[0]
+def isValidKey(key):
+    # Check if the first character of the key is a letter (a-z, A-Z) or a digit (0-9)
+    return key[0].isascii() and (key[0].isalpha() or key[0].isdigit())
 
-                # If the file doesn't already exist, create it.
-                if not os.path.exists(f'./reports/MergedIndexReports/Index-{letter}.json'):
-                    open(f'./reports/MergedIndexReports/Index-{letter}.json','w+')
 
-                # Read in the old version of the report
-                with open(f'./reports/MergedIndexReports/Index-{letter}.json','r+') as outfile:
-                    try:
-                        curr = json.load(outfile) # Load the current file for this character
-                    except:
-                        curr = {} # If it's not readable, assume it's empty
+def mergeJSONs(inputFolder, outputFolder):
+    mergedData = {}
+    for filename in os.listdir(inputFolder):
+        if filename.endswith(".json"):
+            with open(os.path.join(inputFolder, filename), "rb") as f:
+                print(f"Processing file {filename}")
+                objects = ijson.items(f, "")
+                for obj in objects:
+                    for key, value in obj.items():
+                        mergedData.setdefault(key, []).extend(value)
 
-                    # Check to see if this term has already been added.
-                    if not value in curr.keys():
-                        curr[value] = file[value]
-                    
-                    # If it is already in the dict, compare the lists of values
-                    else:
-                        # Check if values are same
-                        if curr[value] == file[value]:
-                            pass
-                        # If two different lists, merge them
-                        else:
-                    
-                            # Append new values into current dictionary
-                            for i in file[value]:
+    # Split merged data based on the first letter of the keys
+    splitData = {}
+    for key, value in mergedData.items():
+        if isValidKey(key):  # Check if the key is valid
+            firstLetter = key[0].lower()
+            splitData.setdefault(firstLetter, {}).update({key: value})
 
-                                # Check for duplicates
-                                if i not in curr[value]:
-                                    curr[value].append(i)                               
-                            
-                    # Write new version of report
-                    with open(f'./reports/MergedIndexReports/Index-{letter}.json','w+') as outfile:
-                        json.dump(curr,outfile)
-            
+    # Write split data to separate JSON files
+    for firstLetter, data in splitData.items():
+        outputFile = os.path.join(outputFolder, f"Index-{firstLetter}.json")
+        with open(outputFile, "w") as f:
+            ujson.dump(data, f)
+        print(f"Wrote {outputFile}")
 
-   
+    print("Merge and split process completed.")
+
 
 if __name__ == "__main__":
-    m = Merger()
-    m.merge()
-    
+    # Path to the folder containing the JSON files
+    inputFolder = "reports/InvertedIndexReports"
+
+    # Path to the output folder
+    outputFolder = "reports/MergedIndexReports"
+
+    # Check if inputFolder directory exists, if not, create it
+    if not os.path.exists(inputFolder):
+        os.makedirs(inputFolder)
+
+    # Check if outputFolder directory exists, if not, create it
+    if not os.path.exists(outputFolder):
+        os.makedirs(outputFolder)
+
+    # Run the function
+    mergeJSONs(inputFolder, outputFolder)

@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import merger
 from bs4 import BeautifulSoup
 from nltk.stem import PorterStemmer
 from collections import defaultdict
@@ -31,7 +32,7 @@ class InvertedIndex:
         # Holds mapping for docIDs
         self.docMapping = {}
         # Batch size
-        self.batchSize = 2
+        self.batchSize = 1000
         # File counter
         self.fileCounter = 1
         # Batch counter
@@ -50,7 +51,7 @@ class InvertedIndex:
 
         return data
 
-    # Get HTML text
+    # Get HTML text separated by tags/fields
     def getText(self, dataContent):
         if dataContent.strip():
             soup = BeautifulSoup(dataContent, "html.parser")
@@ -166,7 +167,7 @@ class InvertedIndex:
             parsed.path.lower(),
         )
 
-    # Add the postings to the index given file
+    # Add the postings to the index given the html file path and file name
     def index(self, dirPath, fileName, dataID):
         data = self.openHTML(dirPath + "/" + fileName)
         dataContent = data["content"]
@@ -191,6 +192,7 @@ class InvertedIndex:
             self.count += 1
             self.fileCounter += 1
 
+    # Load index to batches
     def createBatchIndexes(self, dirPath, fileNames, count):
         if self.fileCounter >= (self.batchSize):
             self.index(dirPath, fileNames, count)
@@ -215,14 +217,17 @@ class InvertedIndex:
         ) as invertedIndexJson:
             json.dump(jsonStructure, invertedIndexJson)
 
+    # Create json of docIDs and their URLs
     def writeDocMapping(self):
         with open("reports/docMapping.json", "w") as docMapping:
             json.dump(self.docMapping, docMapping)
 
+    # Create text file with total number of docs processed
     def writeTotalDocsIndexed(self):
         with open("reports/docsIndexed.txt", "w") as docsIndexed:
-            json.dump(self.indexedDocuments, docsIndexed)
+            docsIndexed.write(str(self.indexedDocuments))
 
+    # Start the indexer
     def start(self, ROOT):
         for dirPath, _, fileNames in os.walk(ROOT):
             for fileName in fileNames:
@@ -232,9 +237,25 @@ class InvertedIndex:
             self.writeIIBatchesToJson(self.batchCounter)
         self.writeDocMapping()
         self.writeTotalDocsIndexed()
+        print("Indexing complete")
 
 
 if __name__ == "__main__":
+    # ADD YOUR DIRECTORY HERE
     ROOT = r"test"
+    # Path to the folder containing the JSON files
+    inputFolder = "reports/InvertedIndexReports"
+    # Path to the output folder
+    outputFolder = "reports/MergedIndexReports"
+
+    # Check if inputFolder directory exists, if not, create it
+    if not os.path.exists(inputFolder):
+        os.makedirs(inputFolder)
+
+    # Check if outputFolder directory exists, if not, create it
+    if not os.path.exists(outputFolder):
+        os.makedirs(outputFolder)
+
     InvertedIndex = InvertedIndex()
     InvertedIndex.start(ROOT)
+    merger.mergeJSONs(inputFolder, outputFolder)
