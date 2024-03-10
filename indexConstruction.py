@@ -1,4 +1,4 @@
-import json
+import ujson
 import os
 import re
 from bs4 import BeautifulSoup
@@ -46,7 +46,7 @@ class InvertedIndex:
     # Open HTML json file
     def openHTML(self, path):
         with open(path, "r") as HTMLjson:
-            data = json.load(HTMLjson)
+            data = ujson.load(HTMLjson)
 
         return data
 
@@ -185,7 +185,6 @@ class InvertedIndex:
                         tokens[field]
                     )
 
-                for field in termFrequencies:
                     self.computePostings(dataID, field, termFrequencies[field])
 
             self.count += 1
@@ -213,15 +212,15 @@ class InvertedIndex:
         with open(
             f"reports/InvertedIndexReports/IIBatch{batchNumber}.json", "w"
         ) as invertedIndexJson:
-            json.dump(jsonStructure, invertedIndexJson)
+            ujson.dump(jsonStructure, invertedIndexJson)
 
     def writeDocMapping(self):
         with open("reports/docMapping.json", "w") as docMapping:
-            json.dump(self.docMapping, docMapping)
+            ujson.dump(self.docMapping, docMapping)
 
     def writeTotalDocsIndexed(self):
         with open("reports/docsIndexed.txt", "w") as docsIndexed:
-            json.dump(self.indexedDocuments, docsIndexed)
+            docsIndexed.write(str(self.indexedDocuments))
 
     def start(self, ROOT):
         for dirPath, _, fileNames in os.walk(ROOT):
