@@ -1,6 +1,6 @@
-from retriever import Retriever
+from retrieve_one import Retriever
 
-if __name__ == "__main__":
+def Search(query):
     # Put path of merged index reports
     invertedIndexPath = "reports/MergedIndexReports"
     # Put path of number of docs indexed
@@ -9,4 +9,9 @@ if __name__ == "__main__":
     docMapping = "reports/docMapping.json"
 
     retriever = Retriever(invertedIndexPath, indexedNumFile, docMapping)
-    retriever.retrieve()
+    return retriever.retrieve(query)
+
+if __name__ == "__main__":
+    query = input("Enter Query: ")
+    results = Search(query)
+    print(results)
