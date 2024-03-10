@@ -88,7 +88,9 @@ class Retriever:
         queryTag = True
         while queryTag:
             tokens = self.getQueryTokens()
-            if tokens[0] == "quit":
+            if tokens == []:
+                continue
+            elif tokens[0] == "quit":
                 break
             merged = self.computeMergedPostings(tokens)
             ANDPostings = self.computeAND(merged)
