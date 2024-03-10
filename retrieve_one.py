@@ -83,7 +83,7 @@ class Retriever:
 
         return uniqueScores
 
-    # loop repeatedly taking queries until 'quit'
+    # Retrieves results for one query
     def retrieve(self,query):
         tokens = [self.stemmer.stem(word) for word in query.split()]
         merged = self.computeMergedPostings(tokens)
