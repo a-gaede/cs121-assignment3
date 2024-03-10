@@ -25,5 +25,4 @@ Once you have downloaded it make sure you have the files in ./reports/InvertedIn
 Run it and type your query into the console once the "Enter Query" prompt shows and it will display the top 5 results alongside the score it was given.
 Type quit to leave the GUI.
 
-3. To use the web based GUI open ?????.py
-
+3. To use the web based GUI run frontend.py and open search.html in your browser. Type your query into the search bar and press enter.
