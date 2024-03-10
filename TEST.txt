@@ -1,0 +1,36 @@
+TEST QUERIES USED
+
+// Testing one word queries ran smoothly with no problems
+1. uci
+2. computer
+3. unique
+
+// Testing if query was properly stemmed, also ran with no problems
+4. computers
+5. uniques
+6. running
+
+// Testing two word queries, had initial problems with intersecting but was resolved
+7. computer science
+8. computer sciences
+9. running man
+10. uci unique
+
+// Testing longer word queries, ran slightly slower than shorter queries but were still quick, scores were generally lower likely do to more queries
+11. computer science uci
+12. computer science at uci
+13. computer science and uci
+14. running unique at uci
+15. running for fun at uci
+
+
+// Testing extremely long queries, ran noticeably slower but still was under 300ms
+16. having a great day as a computer science major
+17. learning to have fun as a computer science major
+
+// Test gibberish to see if no results are returned
+18. qwertyuiopasdfghjklzxcvbnm
+
+// Tested empty query and white space queries, forgot to handle it and added continuing when it happens
+19. ""
+20. " "
