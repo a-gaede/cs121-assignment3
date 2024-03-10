@@ -1,7 +1,6 @@
 import json
 import math
 from nltk.stem import PorterStemmer
-from functools import reduce
 from collections import defaultdict
 
 
@@ -17,8 +16,11 @@ class Retriever:
             self.docMap = json.load(docMapFile)
 
     # individual query token acquisition
-    def getQueryTokens(self):
-        query = input("Enter Query: ")
+    def getQueryTokens(self, interfaceQuery=None):
+        if interfaceQuery:
+            query = interfaceQuery
+        else:
+            query = input("Enter Query: ")
         return [self.stemmer.stem(word) for word in query.split()]
 
     def computeMergedPostings(self, tokens):
@@ -64,7 +66,7 @@ class Retriever:
         return {}
 
     def computeTFIDF(self, post, df):
-        return (post[1] + math.log10(post[2])) * math.log10(self.total / df)
+        return (post[1] + post[2]) * math.log10(self.total / df)
 
     # Scores are computed as follows
     # (FIELD WEIGHT + log(tf)) * log(N / df)
@@ -99,5 +101,11 @@ class Retriever:
             sortedScores = dict(
                 sorted(scores.items(), key=lambda item: item[0], reverse=True)
             )
+            if len(scores) > 5:
+                sortedScores = dict(
+                    sorted(scores.items(),
+                           key=lambda item: item[0], reverse=True)[:5]
+                )
             for i, score in enumerate(sortedScores):
-                print(f"{i+1}\t{round(score)}\t{self.docMap[str(sortedScores[score])]}")
+                print(
+                    f"{i+1}\t{round(score)}\t{self.docMap[str(sortedScores[score])]}")
